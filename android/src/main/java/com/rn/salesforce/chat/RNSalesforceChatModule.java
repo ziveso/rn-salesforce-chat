@@ -1,5 +1,8 @@
 package com.rn.salesforce.chat;
 
+import android.content.Intent;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -13,6 +16,7 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.salesforce.android.chat.core.ChatConfiguration;
 import com.salesforce.android.chat.core.SessionStateListener;
+import com.salesforce.android.chat.core.model.AppEventList;
 import com.salesforce.android.chat.core.model.ChatEndReason;
 import com.salesforce.android.chat.core.model.ChatEntity;
 import com.salesforce.android.chat.core.model.ChatEntityField;
@@ -50,6 +54,10 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 	private final Map<String, ChatEntityField> chatEntityFieldMap;
 	private final List<ChatEntity> chatEntityList;
 	private ChatUIConfiguration chatUiConfiguration;
+	private ChatUIClient uiClient;
+	private ChatAppLinkClickListener chatAppLinkClickListener;
+
+	private AppEventList appEventList;
 
 	public RNSalesforceChatModule(ReactApplicationContext reactContext) {
 		super(reactContext);
@@ -57,6 +65,8 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 		chatUserDataMap = new HashMap<>();
 		chatEntityFieldMap = new HashMap<>();
 		chatEntityList = new ArrayList<>();
+		appEventList = new AppEventList("rms");
+		chatAppLinkClickListener = new ChatAppLinkClickListener(reactContext);
 	}
 
 	@Override
@@ -150,9 +160,11 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 				.build();
 
 		chatUiConfiguration = new ChatUIConfiguration.Builder()
+				.appEventList(appEventList)
+				.appLinkClickListener(chatAppLinkClickListener)
 				.chatConfiguration(chatConfiguration)
 				.queueStyle(QueueStyle.Position)
-				.defaultToMinimized(false)
+				.defaultToMinimized(true)
 				.disablePreChatView(true)
 				.build();
 	}
@@ -174,6 +186,8 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 					public void handleResult(Async<?> operation, @NonNull final ChatUIClient chatUIClient) {
 						chatUIClient.startChatSession(RNSalesforceChatModule.this.getCurrentActivity());
 						chatUIClient.addSessionStateListener(RNSalesforceChatModule.this);
+						RNSalesforceChatModule.this.uiClient = chatUIClient;
+						RNSalesforceChatModule.this.chatAppLinkClickListener.setUIClient(chatUIClient);
 						successCallback.invoke();
 					}
 				};
@@ -192,6 +206,37 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 		reactContext.runOnUiQueueThread(startChatRunnable);
 	}
 
+	@ReactMethod
+	public void maximize() {
+		if(RNSalesforceChatModule.this.uiClient == null) {
+			return;
+		}
+		Runnable maximizeChatRunnable = new Runnable() {
+			@Override
+			public void run() {
+				RNSalesforceChatModule.this.uiClient.maximize();
+			}
+		};
+
+		reactContext.runOnUiQueueThread(maximizeChatRunnable);
+	}
+
+	@ReactMethod
+	public void minimize() {
+		if(RNSalesforceChatModule.this.uiClient == null) {
+			return;
+		}
+
+		Runnable minimizeChatRunnable = new Runnable() {
+			@Override
+			public void run() {
+				RNSalesforceChatModule.this.uiClient.minimize();
+			}
+		};
+
+		reactContext.runOnUiQueueThread(minimizeChatRunnable);
+	}
+
 	@Override
 	public void onSessionStateChange(ChatSessionState chatSessionState) {
 		String state;
@@ -206,6 +251,7 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 				break;
 			case Connected:
 				state = Connected;
+				this.maximize();
 				break;
 			case Ending:
 				state = Ending;
@@ -253,4 +299,3 @@ public class RNSalesforceChatModule extends ReactContextBaseJavaModule implement
 				.emit(ChatSessionEnd, params);
 	}
 }
-

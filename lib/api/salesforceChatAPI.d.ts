@@ -12,6 +12,8 @@ export default class SalesforceChatAPI {
     failureCallback: (errorMessage: string) => void,
     successCallback: () => void
   ): Promise<void>;
+  minimize(): Promise<void>;
+  maximize(): Promise<void>;
   setupChatColorIOS(
     redValue: number,
     greenValue: number,

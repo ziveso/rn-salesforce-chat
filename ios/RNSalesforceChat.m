@@ -160,6 +160,20 @@ RCT_EXPORT_METHOD(openChat:(RCTResponseSenderBlock)failureCallback successCallba
     successCallback(@[[NSNull null]]);
 }
 
+RCT_EXPORT_METHOD(minimize)
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[SCServiceCloud sharedInstance].chatUI minimize];
+    });
+}
+
+RCT_EXPORT_METHOD(maximize)
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[SCServiceCloud sharedInstance].chatUI maximize];
+    });
+}
+
 - (NSArray<NSString *> *)supportedEvents
 {
   return @[ChatSessionEnd, ChatSessionStateChanged];
